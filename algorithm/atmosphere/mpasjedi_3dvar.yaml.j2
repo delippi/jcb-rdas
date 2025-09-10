@@ -1,0 +1,57 @@
+output:
+{% filter indent(width=2) %}
+{% set output_file = output_file ~ '.yaml.j2' %}
+{% include output_file %}
+{% endfilter %}
+
+variational:
+  minimizer:
+    algorithm: {{minimizer}}
+  iterations:
+# Loop over outer loops
+{% for i in range(1, number_of_outer_loops+1) %}
+{% filter indent(width=2) %}
+{% set var_outer_loop_file = 'mpas_' ~ model_component ~ '3dvar_outer_loop_' + i|string + '.yaml.j2' %}
+{% include var_outer_loop_file %}
+{% endfilter %}
+{% endfor %}
+
+cost function:
+  cost type: 3D-Var
+  jb evaluation: {{ jb_evaluation | default(false) }}
+  time window:
+    begin: '{{window_begin}}'
+    length: '{{window_length}}'
+    bound to include: '{{ bound_to_include | default("begin", true) }}'
+
+  geometry:
+{% filter indent(width=4) %}
+{% set geometry_background_file = geometry_background_file|default(model_component ~ 'geometry_background', true) ~ '.yaml.j2' %}
+{% include geometry_background_file %}
+{% endfilter %}
+
+  analysis variables: {{analysis_variables}}
+
+  background:
+{% filter indent(width=4) %}
+{% set background_file = background_file|default(model_component ~ 'background', true) ~ '.yaml.j2' %}
+{% include background_file %}
+{% endfilter %}
+
+  background error:
+{% filter indent(width=4) %}
+{% set background_error_file = background_error_file|default(model_component ~ 'background_error', true) ~ '.yaml.j2' %}
+{% include background_error_file %}
+{% endfilter %}
+
+  observations:
+     obs perturbations: {{ obs_perturbations | default(false, true) }}
+     observers:
+{% for observation_from_jcb in observations %}
+{% if use_observer(observation_from_jcb) %}
+{% filter indent(width=4) %}
+{% include observation_from_jcb + '.yaml.j2' %}
+{% endfilter %}
+{% endif %}
+{% endfor %}
+
